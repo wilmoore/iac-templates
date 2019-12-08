@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS Transfer for SFTP Template
+
+Resources:
+  AWSTransferServer:
+    Type: AWS::Transfer::Server
+    Properties:
+      EndpointType: PUBLIC
+      IdentityProviderType: SERVICE_MANAGED
+      LoggingRole: !Sub '${CloudWatchRole.Arn}'
+ 
+  CloudWatchRole:
+    Type: 'AWS::IAM::Role'
+    Description: CloudWatch log group permissions for AWS Transfer for SFTP Servers.
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - transfer.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+  CloudWatchPolicy:
+    Type: 'AWS::IAM::Policy'
+    Properties:
+      PolicyName: CloudWatchPolicy
+      Roles:
+        - !Ref CloudWatchRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'logs:CreateLogStream'
+              - 'logs:CreateLogGroup'
+              - 'logs:PutLogEvents'
+            Resource: 'arn:aws:logs:*:*:log-group:/aws/transfer/*'
+
+Outputs:
+  Endpoint:
+    Description: SFTP Server Endpoint
+    Value: !Sub '${AWSTransferServer.ServerId}.server.transfer.${AWS::Region}.amazonaws.com'
+    Export:
+      Name: !Sub '${AWS::StackName}Endpoint'
+  ServerID:
+    Description: SFTP Server ID
+    Value: !Sub '${AWSTransferServer.ServerId}'
+    Export:
+      Name: !Sub '${AWS::StackName}ServerID'
